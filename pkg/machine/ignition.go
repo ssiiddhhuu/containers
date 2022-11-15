@@ -50,6 +50,7 @@ func getNodeGrp(grpName string) NodeGroup {
 type DynamicIgnition struct {
 	Name      string
 	Key       string
+	Mounts    []Mount
 	TimeZone  string
 	UID       int
 	VMName    string
@@ -184,38 +185,43 @@ ExecStartPost=/usr/bin/systemctl daemon-reload
 WantedBy=sysinit.target
 `
 	_ = ready
-	ignSystemd := Systemd{
-		Units: []Unit{
-			{
-				Enabled: boolToPtr(true),
-				Name:    "podman.socket",
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "ready.service",
-				Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
-			},
-			{
-				Enabled: boolToPtr(false),
-				Name:    "docker.service",
-				Mask:    boolToPtr(true),
-			},
-			{
-				Enabled: boolToPtr(false),
-				Name:    "docker.socket",
-				Mask:    boolToPtr(true),
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "remove-moby.service",
-				Contents: &deMoby,
-			},
-			{
-				Enabled:  boolToPtr(true),
-				Name:     "envset-fwcfg.service",
-				Contents: &envset,
-			},
-		}}
+	units := []Unit{
+		{
+			Enabled: boolToPtr(true),
+			Name:    "podman.socket",
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "ready.service",
+			Contents: strToPtr(fmt.Sprintf(ready, "vport1p1", "vport1p1")),
+		},
+		{
+			Enabled: boolToPtr(false),
+			Name:    "docker.service",
+			Mask:    boolToPtr(true),
+		},
+		{
+			Enabled: boolToPtr(false),
+			Name:    "docker.socket",
+			Mask:    boolToPtr(true),
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "remove-moby.service",
+			Contents: &deMoby,
+		},
+		{
+			Enabled:  boolToPtr(true),
+			Name:     "envset-fwcfg.service",
+			Contents: &envset,
+		},
+	}
+	if ign.Mounts != nil {
+		mountUnits := buildMountUnits(ign.Mounts)
+		units = append(units, mountUnits...)
+	}
+	ignSystemd := Systemd{Units: units}
+
 	ignConfig := Config{
 		Ignition: ignVersion,
 		Passwd:   ignPassword,
