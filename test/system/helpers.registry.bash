@@ -71,7 +71,8 @@ function start_registry() {
     echo "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" > $AUTHDIR/htpasswd-plaintext
 
     # Run the registry container.
-    run_podman ${PODMAN_LOGIN_ARGS} run -d \
+    # FIXME: remove '?' once #23862 is fixed
+    run_podman '?' ${PODMAN_LOGIN_ARGS} run -d \
                --net=host \
                --name registry \
                -v $AUTHDIR:/auth:Z \
@@ -83,6 +84,16 @@ function start_registry() {
                -e REGISTRY_HTTP_TLS_KEY="/auth/domain.key" \
                $REGISTRY_IMAGE
     cid="$output"
+    # FIXME: 2024-09-04 debugging instrumentation for #23862
+    if [[ $status -ne 0 ]]; then
+        if [[ "$output" =~ bind ]]; then
+            echo
+            echo "$_LOG_PROMPT lsof -i :$PODMAN_LOGIN_REGISTRY_PORT"
+            lsof -i :$PODMAN_LOGIN_REGISTRY_PORT
+            echo
+        fi
+        die "Could not start registry!"
+    fi
 
     wait_for_port 127.0.0.1 ${PODMAN_LOGIN_REGISTRY_PORT}
 
