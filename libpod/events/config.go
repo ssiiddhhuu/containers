@@ -59,6 +59,8 @@ type Details struct {
 	// Attributes can be used to describe specifics about the event
 	// in the case of a container event, labels for example
 	Attributes map[string]string
+	// Whether state change happened for HealthStatus or not
+	IsHealthStatusChanged bool
 }
 
 // EventerOptions describe options that need to be passed to create
@@ -104,6 +106,15 @@ type Type string
 
 // Status describes the actual event action (stop, start, create, kill)
 type Status string
+
+// A general purpose datatype to store additional information to be passed while creating an event
+// more fields can be added as required
+type EventMetadata struct {
+	// Actual health status string ( healthy / unhealthy)
+	HealthStatus string
+	// Whether health status of container is toggeled or not
+	IsHealthStatusChanged bool
+}
 
 // When updating this list below please also update the shell completion list in
 // cmd/podman/common/completion.go and the StringToXXX function in events.go.

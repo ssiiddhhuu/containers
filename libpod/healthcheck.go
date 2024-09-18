@@ -154,7 +154,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	}
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
-	logStatus, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
+	logStatus, isHCStausChanged, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.healthCheckLogPath(), c.ID(), err)
 	}
@@ -165,7 +165,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		return hcResult, logStatus, hcErr
 	}
 	if c.runtime.config.Engine.HealthcheckEvents {
-		c.newContainerHealthCheckEvent(logStatus)
+		c.newContainerHealthCheckEvent(logStatus, isHCStausChanged)
 	}
 
 	return hcResult, logStatus, hcErr
@@ -365,7 +365,7 @@ func (c *Container) isUnhealthy() (bool, error) {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod, isStartup bool) (string, error) {
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod, isStartup bool) (string, bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -373,12 +373,13 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 	// both failing and succeeding cases to match kube behavior.
 	// So don't update the health check log till the start period is over
 	if _, ok := c.config.Spec.Annotations[define.KubeHealthCheckAnnotation]; ok && inStartPeriod && !isStartup {
-		return "", nil
+		return "", false, nil
 	}
 
 	healthCheck, err := c.getHealthCheckLog()
+	oldHCStatus := healthCheck.Status
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if hcl.ExitCode == 0 {
 		//	set status to healthy, reset failing state to 0
@@ -397,15 +398,16 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 			}
 		}
 	}
+	isHCStausChanged := oldHCStatus != healthCheck.Status
 	healthCheck.Log = append(healthCheck.Log, hcl)
 	if len(healthCheck.Log) > MaxHealthCheckNumberLogs {
 		healthCheck.Log = healthCheck.Log[1:]
 	}
 	newResults, err := json.Marshal(healthCheck)
 	if err != nil {
-		return "", fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
+		return "", isHCStausChanged, fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
 	}
-	return healthCheck.Status, os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
+	return healthCheck.Status, isHCStausChanged, os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
 }
 
 // HealthCheckLogPath returns the path for where the health check log is
