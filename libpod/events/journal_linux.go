@@ -66,7 +66,7 @@ func (e EventJournalD) Write(ee Event) error {
 			m["PODMAN_LABELS"] = string(b)
 		}
 		m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
-		m["PODMAN_HEALTH_STATUS_CHANGED"] = strconv.FormatBool( ee.Details.IsHealthStatusChanged )
+		m["PODMAN_HEALTH_STATUS_CHANGED"] = strconv.FormatBool(ee.Details.IsHealthStatusChanged)
 
 		if len(ee.Details.ContainerInspectData) > 0 {
 			m["PODMAN_CONTAINER_INSPECT_DATA"] = ee.Details.ContainerInspectData
@@ -226,7 +226,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
-		newEvent.Details.IsHealthStatusChanged, _ = strconv.ParseBool( entry.Fields["PODMAN_HEALTH_STATUS_CHANGED"] )
+		newEvent.Details.IsHealthStatusChanged, _ = strconv.ParseBool(entry.Fields["PODMAN_HEALTH_STATUS_CHANGED"])
 		newEvent.Details.ContainerInspectData = entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"]
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
