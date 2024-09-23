@@ -133,7 +133,7 @@ function __run_healthcheck_container() {
                --stop-timeout=2 \
                --health-start-period 0 \
                --stop-signal SIGTERM \
-               $IMAGE sleep infinity
+               $IMAGE top -b
 }
 
 # bats test_tags=ci:parallel
