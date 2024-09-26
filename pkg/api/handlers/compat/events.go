@@ -93,6 +93,10 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if evt == nil {
 				continue
 			}
+			if evt.Status == events.HealthStatus && !evt.IsHealthStatusChanged{
+				// Docker will only emit event when there is a state change
+				continue
+			}
 
 			e := entities.ConvertToEntitiesEvent(*evt)
 			// Some events differ between Libpod and Docker endpoints.
