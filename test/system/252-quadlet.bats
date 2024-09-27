@@ -232,13 +232,13 @@ EOF
 
     cat > $dir1/$quadlet_file <<EOF
 [Container]
-Image=$IMAGE
+Image=quay.io/libpod/this-is-the-one:wewant
 Notify=yes
 EOF
 
     cat > $dir2/$quadlet_file <<EOF
 [Container]
-Image=$IMAGE
+Image=quay.io/libpod/bad-bad-bad:nonono
 Notify=no
 EOF
     QUADLET_UNIT_DIRS="$dir1:$dir2" run \

@@ -252,6 +252,19 @@ function basic_teardown() {
 
     command rm -rf $PODMAN_TMPDIR
     exit_code=$((exit_code + $?))
+
+    # FIXME TEMPORARY for #24044 (check_netns_files does not work here)
+    if [[ -z "$PARALLEL_JOBSLOT" ]]; then
+        if is_rootless; then
+            NETNS_DIR=$XDG_RUNTIME_DIR/netns
+        else
+            NETNS_DIR=/run/netns
+        fi
+        if [ -d "$NETNS_DIR" ]; then
+            ls -1 "$NETNS_DIR" | grep -v '13a146e4-638e-82f9-e2f4-261dd685acef' | sed -e 's/^/# NETNS: /' >&3
+        fi
+    fi
+
     return $exit_code
 }
 
@@ -556,7 +569,7 @@ function run_podman() {
     if [ "$status" -eq 124 ]; then
         if expr "$output" : ".*timeout: sending" >/dev/null; then
             # It's possible for a subtest to _want_ a timeout
-            if [[ "$expected_rc" != "124" ]]; then
+            if [[ -n "$expected_rc" ]] && [[ "$expected_rc" != "124" ]]; then
                 echo "*** TIMED OUT ***"
                 false
             fi
